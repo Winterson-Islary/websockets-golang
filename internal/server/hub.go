@@ -1,9 +1,11 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 )
 
 type ClientList map[*Client]bool
@@ -51,6 +53,25 @@ func (hub *Hub) checkEvent(event Event, client *Client) error {
 
 // EVENT FUNCTIONS
 func SendMessage(event Event, client *Client) error {
-	fmt.Println(event)
+	var chatEvent SendMessageEvent
+	if err := json.Unmarshal(event.Payload, &chatEvent); err != nil {
+		return fmt.Errorf("invalid payload in request: %y", err)
+	}
+	var broadMessage NewMessageEvent
+	broadMessage.Sent = time.Now()
+	broadMessage.Message = chatEvent.Message
+	broadMessage.From = chatEvent.From
+
+	data, err := json.Marshal(broadMessage)
+	if err != nil {
+		return fmt.Errorf("failed to marshal broadcast message: %y", err)
+	}
+	outgoingEvent := Event{
+		Type:    EventNewMessage,
+		Payload: data,
+	}
+	for _client := range client.Hub.clients {
+		_client.Egress <- outgoingEvent
+	}
 	return nil
 }
