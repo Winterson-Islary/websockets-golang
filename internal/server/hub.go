@@ -1,11 +1,17 @@
 package server
 
-import "sync"
+import (
+	"errors"
+	"fmt"
+	"sync"
+)
 
 type ClientList map[*Client]bool
+
 type Hub struct {
 	clients ClientList
 	sync.RWMutex
+	handlers map[string]EventHandler
 }
 
 func (hub *Hub) addClient(client *Client) {
@@ -23,5 +29,28 @@ func (hub *Hub) removeClient(client *Client) {
 }
 
 func NewHub() *Hub {
-	return &Hub{clients: make(ClientList)}
+	hub := &Hub{clients: make(ClientList), handlers: make(map[string]EventHandler)}
+	hub.setupEventHandlers()
+	return hub
+}
+
+func (hub *Hub) setupEventHandlers() {
+	hub.handlers[EventSendMessage] = SendMessage
+}
+
+func (hub *Hub) checkEvent(event Event, client *Client) error {
+	if handler, ok := hub.handlers[event.Type]; ok {
+		if err := handler(event, client); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		return errors.New("received invalid event type")
+	}
+}
+
+// EVENT FUNCTIONS
+func SendMessage(event Event, client *Client) error {
+	fmt.Println(event)
+	return nil
 }
