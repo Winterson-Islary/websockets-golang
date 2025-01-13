@@ -18,6 +18,12 @@ func serveWs(hub *Hub, res http.ResponseWriter, req *http.Request) {
 		log.Println("failed to upgrade connection: ", err)
 		return
 	}
-	// client := NewClient(conn, hub)
+	client := NewClient(conn, hub)
+	hub.addClient(client)
+
+	// Client Processes
+	go client.readMessages()
+	go client.writeMessages()
+
 	conn.Close()
 }
