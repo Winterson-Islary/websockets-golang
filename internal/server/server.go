@@ -7,7 +7,13 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const (
+	AllowedOrigin   = "http://localhost:3001"
+	ClientReadLimit = 512 // Precaution for Jumbo-Frames
+)
+
 var upgrader = websocket.Upgrader{
+	CheckOrigin:     checkOrigin,
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
@@ -26,4 +32,14 @@ func serveWs(hub *Hub, res http.ResponseWriter, req *http.Request) {
 	go client.writeMessages()
 
 	conn.Close()
+}
+
+func checkOrigin(req *http.Request) bool {
+	origin := req.Header.Get("Origin")
+	switch origin {
+	case AllowedOrigin:
+		return true
+	default:
+		return false
+	}
 }

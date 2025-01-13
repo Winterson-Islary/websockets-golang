@@ -23,6 +23,7 @@ func (client *Client) readMessages() {
 		log.Printf("pong timeout: %v", err)
 		return
 	}
+	client.Conn.SetReadLimit(ClientReadLimit)
 	client.Conn.SetPongHandler(client.PongHandler)
 
 	for {
