@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -17,6 +18,12 @@ func (client *Client) readMessages() {
 	defer func() {
 		client.Hub.removeClient(client)
 	}()
+	// Setting pong-wait deadlines
+	if err := client.Conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+		log.Printf("pong timeout: %v", err)
+		return
+	}
+	client.Conn.SetPongHandler(client.PongHandler)
 
 	for {
 		_, payload, err := client.Conn.ReadMessage()
@@ -43,6 +50,8 @@ func (client *Client) writeMessages() {
 		client.Hub.removeClient(client)
 	}()
 
+	ticker := time.NewTicker(pingInterval)
+
 	for {
 		select {
 		case message, ok := <-client.Egress:
@@ -62,6 +71,14 @@ func (client *Client) writeMessages() {
 				log.Printf("failed to send message: %v", err)
 			}
 			log.Println("message sent")
+
+		case <-ticker.C:
+			log.Println("ping client")
+			// Ping-ing the client
+			if err := client.Conn.WriteMessage(websocket.PingMessage, []byte(``)); err != nil {
+				log.Printf("writeMessage error: %v", err)
+				return
+			}
 		}
 	}
 }
