@@ -38,6 +38,7 @@ func NewHub() *Hub {
 
 func (hub *Hub) setupEventHandlers() {
 	hub.handlers[EventSendMessage] = SendMessage
+	hub.handlers[EventChangeRoom] = ChatRoomHandler
 }
 
 func (hub *Hub) checkEvent(event Event, client *Client) error {
@@ -71,7 +72,18 @@ func SendMessage(event Event, client *Client) error {
 		Payload: data,
 	}
 	for _client := range client.Hub.clients {
-		_client.Egress <- outgoingEvent
+		if _client.chatroom == client.chatroom {
+			_client.Egress <- outgoingEvent
+		}
 	}
+	return nil
+}
+
+func ChatRoomHandler(event Event, client *Client) error {
+	var changeRoomEvent ChangeRoomEvent
+	if err := json.Unmarshal(event.Payload, &changeRoomEvent); err != nil {
+		return fmt.Errorf("bad payload request: %v", err)
+	}
+	client.chatroom = changeRoomEvent.Name
 	return nil
 }
