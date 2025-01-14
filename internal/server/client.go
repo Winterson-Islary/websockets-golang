@@ -9,9 +9,10 @@ import (
 )
 
 type Client struct {
-	Hub    *Hub
-	Conn   *websocket.Conn
-	Egress chan Event // helps avoid concurrent writes to the websocket connection
+	Hub      *Hub
+	Conn     *websocket.Conn
+	chatroom string
+	Egress   chan Event // helps avoid concurrent writes to the websocket connection
 }
 
 func (client *Client) readMessages() {
